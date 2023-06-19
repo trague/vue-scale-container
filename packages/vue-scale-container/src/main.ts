@@ -24,6 +24,24 @@ export default defineComponent({
     },
 
     /**
+     * 代码最小支持尺寸，为0时忽略此设置
+     * @default 0
+     */
+    minHeight: {
+      type: Number,
+      default: 0
+    },
+
+    /**
+     * 代码最大支持尺寸，为0时忽略此设置
+     * @default 0
+     */
+    maxHeight: {
+      type: Number,
+      default: 0
+    },
+
+    /**
      * 缩放类型
      * fill: 填充满，会变形
      *
@@ -38,6 +56,7 @@ export default defineComponent({
   setup(props) {
     const scaleX = ref(1)
     const scaleY = ref(1)
+    const domHeight = ref(props.height)
     // const el = ref()
 
     watchEffect(() => {
@@ -45,21 +64,58 @@ export default defineComponent({
       document.documentElement.style.setProperty('--scale-y', scaleY.value as unknown as string)
     })
 
+    const calcDomHeight = () => {
+      // 最大最小高度不合法，不再计算，使用设计图高度
+      if (
+        (!props.minHeight || props.minHeight > props.height) &&
+        (!props.maxHeight || props.maxHeight < props.height)
+      ) {
+        domHeight.value = props.height
+        return
+      }
+      const xRatio = window.innerWidth / props.width
+      const yRatio = window.innerHeight / props.height
+      // 缩放比率相同，不再计算，使用设计图高度
+      if (xRatio === yRatio) {
+        domHeight.value = props.height
+        return
+      }
+      const ratioHeight = xRatio * window.innerHeight
+      let _domHeight = props.height
+      if (ratioHeight < props.height && props.minHeight) {
+        if (props.minHeight < ratioHeight) {
+          _domHeight = ratioHeight
+        } else if (props.minHeight >= ratioHeight) {
+          _domHeight = props.minHeight
+        }
+      } else if (ratioHeight > props.height && props.maxHeight) {
+        if (props.maxHeight > ratioHeight) {
+          _domHeight = ratioHeight
+        } else if (props.maxHeight <= ratioHeight) {
+          _domHeight = props.maxHeight
+        }
+      }
+      domHeight.value = _domHeight
+    }
+
     const onResize = () => {
+      calcDomHeight()
+      const width = props.width
+      const height = domHeight.value
       if (props.fit === 'fill') {
-        scaleX.value = window.innerWidth / props.width
-        scaleY.value = window.innerHeight / props.height
+        scaleX.value = window.innerWidth / width
+        scaleY.value = window.innerHeight / height
       } else if (props.fit === 'w-full') {
-        scaleX.value = window.innerWidth / props.width
+        scaleX.value = window.innerWidth / width
         scaleY.value = scaleX.value
 
         // 按宽度缩放，高度大于可是高度，出现滚动条
-        if (scaleX.value > window.innerHeight / props.height) {
+        if (scaleX.value > window.innerHeight / height) {
           const scrollBarWidth = getScrollBarWidth('')
-          const barScaleX = (window.innerWidth - scrollBarWidth) / props.width
+          const barScaleX = (window.innerWidth - scrollBarWidth) / width
           // 比例差仅在滚动条宽度之内，让高度上全屏，不产生滚动条
-          if (barScaleX < window.innerHeight / props.height) {
-            scaleY.value = window.innerHeight / props.height
+          if (barScaleX < window.innerHeight / height) {
+            scaleY.value = window.innerHeight / height
           } else {
             scaleX.value = barScaleX
             scaleY.value = barScaleX
@@ -81,18 +137,19 @@ export default defineComponent({
 
     return {
       scaleX,
-      scaleY
+      scaleY,
+      domHeight
       // el
     }
   },
   render() {
-    const { height, width, scaleX, scaleY } = this
+    const { domHeight, width, scaleX, scaleY } = this
     return h(
       'div',
       {
         class: 'scale-container-wrap',
         style: {
-          height: height * scaleY + 'px',
+          height: domHeight * scaleY + 'px',
           width: width * scaleX + 'px',
           overflow: 'hidden'
         } as unknown as string
@@ -104,7 +161,7 @@ export default defineComponent({
           {
             class: 'scale-container',
             style: {
-              height: height + 'px',
+              height: domHeight + 'px',
               width: width + 'px',
               transform: `scaleX(${scaleX}) scaleY(${scaleY})`,
               transformOrigin: '0 0'
