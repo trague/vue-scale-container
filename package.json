@@ -1,10 +1,14 @@
 {
   "name": "vue-scale-container",
-  "version": "0.0.12",
+  "version": "0.0.14",
   "private": false,
   "author": "trague",
   "license": "MIT",
   "description": "用于大屏缩放的Vue组件",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/trague/vue-scale-container.git"
+  },
   "keywords": [
     "vue",
     "vue-scale-container",
