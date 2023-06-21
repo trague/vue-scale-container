@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import VueScaleContainer from '../packages/vue-scale-container/src/main'
+import TestForceUpdate from './TestForceUpdate.vue'
 </script>
 
 <template>
-  <VueScaleContainer fit="w-full" :min-height="920" :max-height="1200">
+  <VueScaleContainer fit="w-full" :min-height="920" :max-height="1200" force-update-on-resize>
     <div class="wrap">
       <div class="left">
         <div></div>
         <div></div>
         <div></div>
       </div>
-      <div class="center"></div>
+      <div class="center"><TestForceUpdate></TestForceUpdate></div>
       <div class="right">
         <div></div>
         <div></div>
