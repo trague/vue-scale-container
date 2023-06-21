@@ -1,4 +1,4 @@
-import { watchEffect, ref, onMounted, onUnmounted, defineComponent } from 'vue-demi'
+import { watchEffect, ref, onMounted, onUnmounted, defineComponent, nextTick } from 'vue-demi'
 import h, { slot } from '../../utils/h-demi'
 import type { PropType } from 'vue-demi'
 import { getScrollBarWidth } from '../../utils/scrollbar-width'
@@ -42,6 +42,14 @@ export default defineComponent({
     },
 
     /**
+     * resize事件，重新渲染slot内容
+     */
+    forceUpdateOnResize: {
+      type: Boolean,
+      default: false
+    },
+
+    /**
      * 缩放类型
      * fill: 填充满，会变形
      *
@@ -54,6 +62,7 @@ export default defineComponent({
   },
 
   setup(props) {
+    const renderSlot = ref(true)
     const scaleX = ref(1)
     const scaleY = ref(1)
     const domHeight = ref(props.height)
@@ -98,7 +107,7 @@ export default defineComponent({
       domHeight.value = _domHeight
     }
 
-    const onResize = () => {
+    const onResize = (event?: UIEvent) => {
       calcDomHeight()
       const width = props.width
       const height = domHeight.value
@@ -124,6 +133,15 @@ export default defineComponent({
       } else {
         console.warn(`vue-scale-container.fit不支持${props.fit}参数`)
       }
+      // 没有，说明是第一次出发，不需要重新渲染
+      if (event) {
+        if (props.forceUpdateOnResize) {
+          renderSlot.value = false
+          nextTick(() => {
+            renderSlot.value = true
+          })
+        }
+      }
     }
 
     onMounted(() => {
@@ -138,12 +156,13 @@ export default defineComponent({
     return {
       scaleX,
       scaleY,
-      domHeight
+      domHeight,
+      renderSlot
       // el
     }
   },
   render() {
-    const { domHeight, width, scaleX, scaleY } = this
+    const { domHeight, width, scaleX, scaleY, renderSlot, forceUpdateOnResize } = this
     return h(
       'div',
       {
@@ -167,7 +186,11 @@ export default defineComponent({
               transformOrigin: '0 0'
             } as unknown as string
           },
-          [this.$slots.default ? slot(this.$slots.default) : undefined]
+          [
+            this.$slots.default && (!forceUpdateOnResize || renderSlot)
+              ? slot(this.$slots.default)
+              : undefined
+          ]
         )
       ]
     )
